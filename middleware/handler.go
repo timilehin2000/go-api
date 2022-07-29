@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"goApi/models"
 	"log"
@@ -18,6 +19,8 @@ func LoadDb() *sql.DB {
 	//flag an err if the env refuses to load
 	if err != nil {
 		log.Fatalf("Error loading %s", err)
+	} else {
+		log.Println("env file loaded")
 	}
 
 	//load the env variables
@@ -28,7 +31,7 @@ func LoadDb() *sql.DB {
 	dbname := os.Getenv("APP_DB_NAME")
 
 	//create the connection string
-	connects := fmt.Sprintf("%s=host %s=port  %s=username "+"%s=password %s=dbname sslmode=disable", host, port, dbname, username, password)
+	connects := fmt.Sprintf("host=%s port=%s username=%s "+"password=%s dbname=%s sslmode=disable", host, port, username, password, dbname)
 
 	fmt.Println(connects)
 
@@ -61,11 +64,22 @@ func GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(sqlStament)
 
 	if err != nil {
-		fmt.Sprintf("error occured while doing this")
+		log.Println(fmt.Sprintf("error occured while doing this :%s", err))
 	}
 
 	for rows.Next() {
-		err = rows.Scan(&book.ID, &book.Author, &book.Title, &book.Year)
+		err := rows.Scan(&book.ID, &book.Author, &book.Title, &book.Year, &book.CreatedAt)
+
+		if err != nil {
+			log.Println(fmt.Sprintf("error occured while doing this :%s", err))
+		}
+
+		books = append(books, book)
 	}
+
+	json.NewEncoder(w).Encode(books)
+
+	defer db.Close()
+	defer rows.Close()
 
 }
